@@ -151,7 +151,7 @@ class HangmanGame:
 
             if self.hangman_status == MAX_ATTEMPTS:
                 pygame.time.delay(1000)
-                result = self.display_end_screen("You LOST!")
+                result = self.display_end_screen(f"You LOST! The word was: {self.word}")
                 if result == "restart":
                     self.reset()
                     continue
