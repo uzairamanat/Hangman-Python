@@ -51,13 +51,44 @@ class LetterButton:
 
 class HangmanGame:
     def __init__(self):
-        self.word_list = ["HELLO", "WELCOME", "BONJOUR", "GOODBYE"]
-        self.reset()
+        self.categories = {
+            "Greetings": ["HELLO", "WELCOME", "BONJOUR", "GOODBYE"],
+            "Animals": ["TIGER", "ELEPHANT", "GIRAFFE", "KANGAROO"],
+            "Fruits": ["APPLE", "BANANA", "CHERRY", "MANGO"]
+        }
+        self.selected_category = None
         self.clock = pygame.time.Clock()
         self.running = True
 
+    def select_category(self):
+        while True:
+            win.fill(WHITE)
+            text = TITLE_FONT.render("Choose a Category", True, BLACK)
+            win.blit(text, (WIDTH / 2 - text.get_width() / 2, 50))
+
+            buttons = []
+            for idx, category in enumerate(self.categories.keys()):
+                rect = pygame.Rect(WIDTH / 2 - 100, 150 + idx * 80, 200, 50)
+                pygame.draw.rect(win, GRAY, rect)
+                cat_text = WORD_FONT.render(category, True, BLACK)
+                win.blit(cat_text, (rect.centerx - cat_text.get_width() / 2, rect.centery - cat_text.get_height() / 2))
+                buttons.append((rect, category))
+
+            pygame.display.update()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    pos = pygame.mouse.get_pos()
+                    for rect, category in buttons:
+                        if rect.collidepoint(pos):
+                            self.selected_category = category
+                            return
+
     def reset(self):
-        self.word = random.choice(self.word_list)
+        self.word = random.choice(self.categories[self.selected_category])
         self.guessed = []
         self.hangman_status = 0
         self.letter_buttons = self.create_letter_buttons()
@@ -92,21 +123,29 @@ class HangmanGame:
         while True:
             win.fill(WHITE)
             text = WORD_FONT.render(message, 1, BLACK)
-            win.blit(text, (WIDTH / 2 - text.get_width() / 2, HEIGHT / 2 - 100))
+            win.blit(text, (WIDTH / 2 - text.get_width() / 2, HEIGHT / 2 - 120))
 
-            play_again_rect = pygame.Rect(WIDTH / 2 - 100, HEIGHT / 2, 200, 50)
-            quit_game_rect = pygame.Rect(WIDTH / 2 - 100, HEIGHT / 2 + 70, 200, 50)
+            play_again_rect = pygame.Rect(WIDTH / 2 - 100, HEIGHT / 2 - 40, 200, 50)
+            change_category_rect = pygame.Rect(WIDTH / 2 - 100, HEIGHT / 2 + 30, 260, 50)
+            quit_game_rect = pygame.Rect(WIDTH / 2 - 100, HEIGHT / 2 + 100, 200, 50)
 
+            # Draw buttons
             pygame.draw.rect(win, GRAY, play_again_rect)
+            pygame.draw.rect(win, GRAY, change_category_rect)
             pygame.draw.rect(win, GRAY, quit_game_rect)
 
+            # Render text
             play_again_text = WORD_FONT.render("Play Again", 1, BLACK)
+            change_category_text = WORD_FONT.render("New Category", 1, BLACK)
             quit_game_text = WORD_FONT.render("Quit", 1, BLACK)
 
+            # Blit text
             win.blit(play_again_text, (play_again_rect.centerx - play_again_text.get_width() / 2,
-                                       play_again_rect.centery - play_again_text.get_height() / 2))
+                                    play_again_rect.centery - play_again_text.get_height() / 2))
+            win.blit(change_category_text, (change_category_rect.centerx - change_category_text.get_width() / 2,
+                                            change_category_rect.centery - change_category_text.get_height() / 2))
             win.blit(quit_game_text, (quit_game_rect.centerx - quit_game_text.get_width() / 2,
-                                      quit_game_rect.centery - quit_game_text.get_height() / 2))
+                                    quit_game_rect.centery - quit_game_text.get_height() / 2))
 
             pygame.display.update()
 
@@ -118,11 +157,15 @@ class HangmanGame:
                     pos = pygame.mouse.get_pos()
                     if play_again_rect.collidepoint(pos):
                         return "restart"
+                    elif change_category_rect.collidepoint(pos):
+                        return "change_category"
                     elif quit_game_rect.collidepoint(pos):
                         pygame.quit()
                         exit()
 
     def run(self):
+        self.select_category()
+        self.reset()
         while self.running:
             self.clock.tick(FPS)
 
@@ -137,6 +180,16 @@ class HangmanGame:
                             self.guessed.append(button.letter)
                             if button.letter not in self.word:
                                 self.hangman_status += 1
+                if event.type == pygame.KEYDOWN:
+                    key = event.unicode.upper()
+                    if 'A' <= key <= 'Z':  # Only letters
+                        for button in self.letter_buttons:
+                            if button.letter == key and button.visible:
+                                button.visible = False
+                                self.guessed.append(button.letter)
+                                if button.letter not in self.word:
+                                    self.hangman_status += 1
+
 
             self.draw()
 
@@ -146,8 +199,11 @@ class HangmanGame:
                 if result == "restart":
                     self.reset()
                     continue
-                else:
-                    self.running = False
+                elif result == "change_category":
+                    self.select_category()
+                    self.reset()
+                    continue
+                break
 
             if self.hangman_status == MAX_ATTEMPTS:
                 pygame.time.delay(1000)
@@ -155,8 +211,12 @@ class HangmanGame:
                 if result == "restart":
                     self.reset()
                     continue
-                else:
-                    self.running = False
+                elif result == "change_category":
+                    self.select_category()
+                    self.reset()
+                    continue
+                break
+
 
 # Run game
 game = HangmanGame()
